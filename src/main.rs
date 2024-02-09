@@ -6,40 +6,46 @@ use std::io;
 
 #[tokio::main]
 async fn main() {
-    let mut command: String = String::new();
+    loop {
+        let mut command: String = String::new();
 
-    io::stdin()
-        .read_line(&mut command)
-        .expect("lym: error reading command");
+        io::stdin()
+            .read_line(&mut command)
+            .expect("lym: error reading command");
 
-    let command: &str = command.trim();
+        let command: &str = command.trim();
 
-    if command == "lym" {
-        Command::get_lym().expect("lym: error with 'lym' command");
-        return;
-    }
+        if command == "lym exit" || command == "exit" {
+            break;
+        }
 
-    let command: &str = &command[4..];
+        if command == "lym" {
+            Command::get_lym().expect("lym: error with 'lym' command");
+            continue;
+        }
 
-    let english_to_spanish: Languages = Languages::EN(String::from("en|es"));
-    let spanish_to_english: Languages = Languages::ES(String::from("es|en"));
-    let local: DateTime<Local> = Local::now();
+        let command: &str = &command[4..];
 
-    let result: Result<(), Error> = match command {
-        "" => Ok(()),
-        "--help" | "-h" => Command::get_help(),
-        "--version" | "-v" => Command::get_version(),
-        "time" => Command::get_time(local),
-        "hour" => Command::get_hour(local),
-        "date" => Command::get_date(local),
-        cmd if cmd.contains("etos") => Command::translations(command, english_to_spanish).await,
-        cmd if cmd.contains("stoe") => Command::translations(command, spanish_to_english).await,
-        _ => Command::invalid_command(command),
-    };
+        let english_to_spanish: Languages = Languages::EN(String::from("en|es"));
+        let spanish_to_english: Languages = Languages::ES(String::from("es|en"));
+        let local: DateTime<Local> = Local::now();
 
-    if let Err(error) = result {
-        eprintln!("lym: error in command execution: {error}");
-        return;
+        let result: Result<(), Error> = match command {
+            "" => Ok(()),
+            "--help" | "-h" => Command::get_help(),
+            "--version" | "-v" => Command::get_version(),
+            "time" => Command::get_time(local),
+            "hour" => Command::get_hour(local),
+            "date" => Command::get_date(local),
+            cmd if cmd.contains("etos") => Command::translations(command, english_to_spanish).await,
+            cmd if cmd.contains("stoe") => Command::translations(command, spanish_to_english).await,
+            _ => Command::invalid_command(command),
+        };
+
+        if let Err(error) = result {
+            eprintln!("lym: error in command execution: {error}");
+            continue;
+        }
     }
 }
 
@@ -49,8 +55,9 @@ impl Command {
     fn get_lym() -> Result<(), Error> {
         print!(
             "{}
+for contributions -> {}
 
-  {}:
+ {}:
     lym               Information and commands available from lym.
     lym --help        Only available commands.
     lym --version     Current version.
@@ -59,27 +66,30 @@ impl Command {
     lym date          Check current date.
     lym etos <word>   Translate a word from English to Spanish.
     lym stoe <word>   Translate a word from Spanish to English.
-    more soon...
+    lym exit          Close lym cli.
 
-For contributions -> {}",
+    ",
             "lym version 1.0.0 - command line for programmers".magenta(),
+            "https://github.com/gioliotta".white(),
             "Commands".white(),
-            "https://github.com/gioliotta".magenta()
         );
         Ok(())
     }
 
     fn get_help() -> Result<(), Error> {
         print!(
-            "  {}:
+            "  
+{}:
     lym               Information and commands available from lym.
     lym --help        Only available commands.
     lym --version     Current version.
-    lym date          Check current date.
-    lym hour          Check current hour.
     lym time          Check current date and hour.
+    lym hour          Check current hour.
+    lym date          Check current date.
     lym etos <word>   Translate a word from English to Spanish.
     lym stoe <word>   Translate a word from Spanish to English.
+    lym exit          Close lym cli.
+
 ",
             "Commands".white(),
         );
@@ -107,14 +117,11 @@ For contributions -> {}",
     }
 
     async fn translations(command: &str, language: Languages) -> Result<(), Error> {
-        let word: Vec<&str> = command.split_whitespace().collect();
-        let word: &str = match word.get(1) {
-            Some(w) => w,
-            None => {
-                eprintln!("lym: error missing second word in the '{command}' command");
-                return Ok(());
-            }
-        };
+        let collect_words: Vec<&str> = command.split_whitespace().collect();
+        let remove_cmd: Vec<&str> = collect_words.into_iter().skip(1).collect();
+
+        let sentence_string: String = remove_cmd.join(" ");
+        let sentence_to_translate: &str = sentence_string.as_str();
 
         let lan_as_str: &str = match language {
             Languages::EN(_) => "en|es",
@@ -122,7 +129,7 @@ For contributions -> {}",
         };
 
         const URL: &'static str = "https://api.mymemory.translated.net/get";
-        let params: [(&str, &str); 2] = [("q", word), ("langpair", lan_as_str)];
+        let params: [(&str, &str); 2] = [("q", sentence_to_translate), ("langpair", lan_as_str)];
 
         let client: Client = Client::new();
         let response: Response = match client.post(URL).form(&params).send().await {
