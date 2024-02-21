@@ -1,12 +1,16 @@
 [package]
-name = "lym"
+name = "lym-cli"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "lym"
+path = "./src/main.rs"
+
 [dependencies]
+clap = { version = "4.5.1", features = ["derive", "color", "suggestions", "wrap_help"] }
 chrono = "0.4.33"
 reqwest = "0.11.24"
-tokio = { version = "1", features = ["full"] }
 serde = "1.0"
 serde_json = "1.0"
-structopt = "0.3"
+tokio = { version = "1", features = ["full"] }
