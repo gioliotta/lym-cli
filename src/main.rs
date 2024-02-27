@@ -1,5 +1,6 @@
 use chrono::{DateTime, Local};
 use clap::{Parser, Subcommand};
+use eval::eval;
 use reqwest::{Client, Error, Response};
 use serde_json::{from_str, Value};
 
@@ -8,45 +9,67 @@ struct ClapArgs {
     #[clap(subcommand)]
     pub command: Args,
 }
+
 struct Command;
 
 #[derive(Subcommand)]
 enum Args {
-    /// Get the currently time
+    /// Obtén la version actual de lym.
+    Version,
+
+    /// Obtén la fecha y hora actual.
     Time,
 
-    /// Translate senteces: 'etos' -> english to spanish.
-    Etos,
+    /// Traduce texto  de inglés a español.
+    Etos { text: Vec<String> },
 
-    /// Traduce oraciones: 'stoe' -> spanish to english.
-    Stoe,
+    /// Traduce texto  de español a inglés.
+    Stoe { text: Vec<String> },
+
+    /// Realiza operaciones matemáticas.
+    Cal { operation: String },
 }
 
 #[tokio::main]
 async fn main() {
-    let arguments = ClapArgs::parse();
+    let arguments: ClapArgs = ClapArgs::parse();
 
     match arguments.command {
+        Args::Version => Command::get_version(),
         Args::Time => Command::get_time(),
-        Args::Etos => Command::translations("en|es", "food")
+        Args::Cal { operation } => Command::calculate(&operation),
+        Args::Etos { text } => Command::translate("en|es", &text)
             .await
-            .expect("poronga de indio"),
-        Args::Stoe => Command::translations("es|en", "amarillo")
+            .expect("Error in etos command"),
+        Args::Stoe { text } => Command::translate("es|en", &text)
             .await
-            .expect("poronga de indio"),
+            .expect("Error in stoe command"),
     }
 }
 
 impl Command {
+    fn get_version() {
+        println!("lym version 1.0.0")
+    }
+
     fn get_time() {
         let local_time: DateTime<Local> = Local::now();
         println!("{}", local_time.format("%H:%M:%S - %d/%m/%y"));
     }
 
-    async fn translations(language: &str, setence: &str) -> Result<(), Error> {
-        const URL: &'static str = "https://api.mymemory.translated.net/get";
+    fn calculate(operation: &String) {
+        match eval(operation) {
+            Ok(val) => println!("{}", val),
+            Err(err) => println!("Error on calculate: {}", err),
+        }
+    }
 
-        let params: [(&str, &str); 2] = [("q", setence), ("langpair", language)];
+    async fn translate(language: &str, sentence: &Vec<String>) -> Result<(), Error> {
+        const URL: &'static str = "https://api.mymemory.translated.net/get";
+        let sentence: String = sentence.join(" ");
+        let sentence: &str = sentence.as_str();
+
+        let params: [(&str, &str); 2] = [("q", sentence), ("langpair", language)];
 
         let client: Client = Client::new();
         let response: Response = match client.post(URL).form(&params).send().await {
@@ -75,7 +98,7 @@ impl Command {
             };
 
             if let Some(translated_word) = body["responseData"]["translatedText"].as_str() {
-                println!("translation -> {}", translated_word);
+                println!("{}", translated_word);
             }
         } else {
             eprintln!(
@@ -86,3 +109,5 @@ impl Command {
         Ok(())
     }
 }
+
+// sudo cp /home/gixi/toding/programasao/lym-cli/target/release/lym /usr/local/bin
