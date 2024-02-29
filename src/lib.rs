@@ -19,10 +19,10 @@ enum Args {
     Time,
 
     /// Traduce texto  de inglés a español.
-    Etos { text: Vec<String> },
+    En { text: Vec<String> },
 
     /// Traduce texto  de español a inglés.
-    Stoe { text: Vec<String> },
+    Es { text: Vec<String> },
 
     /// Realiza operaciones matemáticas.
     Cal { operation: String },
@@ -33,12 +33,12 @@ pub async fn run(args: ClapArgs) {
         Args::Version => Command::get_version(),
         Args::Time => Command::get_time(),
         Args::Cal { operation } => Command::calculate(&operation),
-        Args::Etos { text } => Command::translate("en|es", &text)
+        Args::En { text } => Command::translate("en|es", &text)
             .await
-            .expect("Error in etos command"),
-        Args::Stoe { text } => Command::translate("es|en", &text)
+            .expect("Error en el comando 'en'"),
+        Args::Es { text } => Command::translate("es|en", &text)
             .await
-            .expect("Error in stoe command"),
+            .expect("Error en el comando 'es'"),
     }
 }
 
