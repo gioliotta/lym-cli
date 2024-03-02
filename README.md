@@ -1,4 +1,4 @@
-# lym: CLI Toolkit - en desarrollo
+# lym: CLI Toolkit
 CLI diseñado para programadores v1.0.0
 
 ### Web
