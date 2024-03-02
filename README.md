@@ -1,10 +1,8 @@
 # lym: CLI Toolkit - en desarrollo
 CLI diseñado para programadores v1.0.0
 
-### Instalación
-```bash
-sudo apt -i lym-cli
-```
+### Web
+https://lym.shuttleapp.rs/
 
 ### Uso
 ```sh-session
