@@ -1,6 +1,10 @@
-use chrono::{DateTime, Local};
+use chrono::{
+    format::{DelayedFormat, StrftimeItems},
+    DateTime, Local,
+};
 use clap::{error::Result, Parser, Subcommand};
 use eval::eval;
+use rand::Rng;
 use reqwest::{Client, Error, Response};
 use serde_json::{from_str, Value};
 
@@ -12,33 +16,41 @@ pub struct ClapArgs {
 
 #[derive(Subcommand)]
 enum Args {
-    /// Obtén la version actual de lym.
+    /// Obtén la versión actual de lym.
     Version,
 
     /// Obtén la fecha y hora actual.
     Time,
 
-    /// Traduce texto  de inglés a español.
+    /// Traduce texto de inglés al español.
     En { text: Vec<String> },
 
-    /// Traduce texto  de español a inglés.
+    /// Traduce texto de español al inglés.
     Es { text: Vec<String> },
 
     /// Realiza operaciones matemáticas.
     Cal { operation: String },
+
+    /// Genera una contraseña aleatoria.
+    #[clap(value_parser, allow_hyphen_values = true)]
+    Pass { length: Option<String> },
 }
 
 pub async fn run(args: ClapArgs) {
+    const EN_TO_ES: &str = "en|es";
+    const ES_TO_EN: &str = "es|en";
+
     match args.command {
         Args::Version => Command::get_version(),
         Args::Time => Command::get_time(),
         Args::Cal { operation } => Command::calculate(&operation),
-        Args::En { text } => Command::translate("en|es", &text)
+        Args::En { text } => Command::translate(EN_TO_ES, &text)
             .await
             .expect("Error en el comando 'en'"),
-        Args::Es { text } => Command::translate("es|en", &text)
+        Args::Es { text } => Command::translate(ES_TO_EN, &text)
             .await
             .expect("Error en el comando 'es'"),
+        Args::Pass { length } => Command::generate_password(length),
     }
 }
 
@@ -46,12 +58,13 @@ struct Command;
 
 impl Command {
     fn get_version() {
-        println!("lym version 1.0.0");
+        println!("versión de lym: 1.1.0");
     }
 
     fn get_time() {
         let local_time: DateTime<Local> = Local::now();
-        println!("{}", local_time.format("%H:%M:%S - %d/%m/%y"));
+        let date: DelayedFormat<StrftimeItems> = local_time.format("%H:%M:%S - %d/%m/%y");
+        println!("{}", date);
     }
 
     fn calculate(operation: &String) {
@@ -108,5 +121,31 @@ impl Command {
             );
         }
         Ok(())
+    }
+
+    fn generate_password(length: Option<String>) {
+        const DEFAULT_VAL: i32 = 8;
+        const MAX: i32 = 10000;
+        const CHARSET: &[u8; 69] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+            abcdefghijklmnopqrstuvwxyz\
+            0123456789\
+            !@#$*_.";
+
+        let length_pass: i32 = match length {
+            Some(len) => match len.parse::<i32>() {
+                Ok(len) if len > 0 && len < MAX => len,
+                _ => return eprintln!("Ingresa un número entero positivo y/o menor a {MAX}"),
+            },
+            None => DEFAULT_VAL,
+        };
+
+        let mut rng = rand::thread_rng();
+        let password: String = (0..length_pass)
+            .map(|_| {
+                let idx = rng.gen_range(0..CHARSET.len());
+                CHARSET[idx] as char
+            })
+            .collect();
+        println!("{}", password);
     }
 }

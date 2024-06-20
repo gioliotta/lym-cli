@@ -1,6 +1,6 @@
 [package]
 name = "lym_cli"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 
 [lib]
@@ -12,10 +12,15 @@ name = "lym"
 path = "./src/main.rs"
 
 [dependencies]
-clap = { version = "4.5.1", features = ["derive", "color", "suggestions", "wrap_help"] }
-chrono = "0.4.33"
 reqwest = "0.11.24"
-serde = "1.0"
+chrono = "0.4.33"
+tokio = { version = "1.0", features = ["full"] }
 serde_json = "1.0"
-tokio = { version = "1", features = ["full"] }
 eval = "0.4.3"
+rand = "0.8"
+clap = { version = "4.5.1", features = [
+    "derive",
+    "color",
+    "suggestions",
+    "wrap_help",
+] }
